@@ -53,7 +53,7 @@ class VisualizationCallback(Callback):
 
         if not self._logged_dct:
             reconstructions = [
-                reconstruct_dct(x, k=k).detach().cpu().numpy() for k in [32, 16, 8, 4]
+                reconstruct_dct(x, k=k).detach().cpu().numpy() for k in pl_module.ks
             ]
             images = draw_reconstructions(x.detach().cpu().numpy(), *reconstructions)
             pl_module.logger.log_image("dct_reconstructions", images=[images])
