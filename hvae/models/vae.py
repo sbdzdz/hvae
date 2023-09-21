@@ -3,10 +3,12 @@ from typing import Optional
 
 import lightning.pytorch as pl
 import torch
+import torchvision
 from torch import Tensor, nn
 from torch.nn import functional as F
+from torchvision.models import get_model, list_models
 
-from hvae.models.blocks import Decoder, Encoder, ResDecoder, ResEncoder
+from hvae.models.blocks import Decoder, Encoder
 
 
 class VAE(pl.LightningModule):
@@ -20,7 +22,7 @@ class VAE(pl.LightningModule):
         latent_dim: int = 16,
         beta: float = 1.0,
         lr: float = 1e-3,
-        residual: bool = False,
+        encoder: str = "simple_cnn",
     ) -> None:
         """Initialize the model.
         Args:
@@ -43,20 +45,23 @@ class VAE(pl.LightningModule):
             channels = [16, 32, 64, 64, 128]
         self.channels = channels
 
-        if residual:
-            self.encoder = ResEncoder()
-            self.decoder = ResDecoder()
-            self.encoder_output_img_size = 2
-            self.encoder_output_size = self.encoder_output_img_size**2 * 64
-            self.channels = [16, 16, 32, 32, 48, 48, 64]
-        else:
+        if encoder == "simple_cnn":
             self.encoder = Encoder(channels, in_channels)
-            self.decoder = Decoder(list(reversed(channels)), in_channels)
             self.encoder_output_img_size = img_size // 2 ** len(channels)
             assert (
                 self.encoder_output_img_size > 0
             ), "Too many layers for the input size."
             self.encoder_output_size = self.encoder_output_img_size**2 * channels[-1]
+        elif encoder in list_models(module=torchvision.models):
+            self.encoder = get_model(
+                encoder, weights=None, num_classes=16 * channels[-1]
+            )
+            self.encoder_output_img_size = 4
+            self.encoder_output_size = 16 * channels[-1]
+        else:
+            raise ValueError(f"Unknown encoder: {encoder}")
+
+        self.decoder = Decoder(list(reversed(channels)), in_channels)
 
         self.fc_mu = nn.Linear(self.encoder_output_size, latent_dim)
         self.fc_var = nn.Linear(self.encoder_output_size, latent_dim)

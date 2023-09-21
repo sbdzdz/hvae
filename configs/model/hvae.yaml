@@ -6,5 +6,5 @@ latent_dim: 16
 beta: 0.5
 num_levels: 4
 lr: 0.0001
-residual: false
+encoder: simple_cnn
 num_classes: ${dataset.num_classes}
