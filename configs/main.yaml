@@ -15,6 +15,7 @@ trainer:
   log_every_n_steps: 10
   logger: ${wandb}
   max_epochs: 3000
+  gradient_clip_val: 1.0
 
 training:
   batch_size: 256

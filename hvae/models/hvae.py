@@ -29,7 +29,6 @@ class HVAE(VAE):
                         self.num_hidden,
                         self.encoder_output_size,
                     ],
-                    last_activation=nn.Sigmoid,
                 )
                 for _ in range(self.num_levels)
             ]
