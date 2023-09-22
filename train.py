@@ -23,6 +23,7 @@ def train(cfg: DictConfig) -> None:
         logger={"config": config},
     )
     model = hydra.utils.instantiate(cfg.model)
+    trainer.logger.watch(model, log_freq=cfg.trainer.log_every_n_steps)
     print_summary(cfg, model)
     trainer.fit(model, train_dataloader, val_dataloader)
 
