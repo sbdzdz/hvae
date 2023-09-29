@@ -13,6 +13,7 @@ def draw_batch(
     images,
     fig_height: float = 10,
     num_images: int = 16,
+    normalize: bool = True,
 ):
     """Show a batch of images on a grid.
     Only the first n_max images are shown.
@@ -35,6 +36,8 @@ def draw_batch(
         axes = np.array([axes])
 
     for ax, img in zip(axes.flat, images[:num_images]):
+        if normalize:
+            img = (img - np.min(img)) / (np.max(img) - np.min(img))
         ax.imshow(img, cmap="Greys_r", interpolation="nearest")
         ax.axis("off")
     buffer = io.BytesIO()
@@ -48,6 +51,7 @@ def draw_reconstructions(
     *image_arrays,
     fig_height: float = 10,
     num_images: int = 16,
+    normalize: bool = True,
 ):
     """Show a batch of images and their reconstructions on a grid.
     Only the first n_max images are shown.
@@ -80,7 +84,11 @@ def draw_reconstructions(
     for i, ax in enumerate(axes.flat):
         if i >= num_images:
             break
-        images = [img[i] for img in image_arrays]
+        if normalize:
+            images = [
+                (img[i] - np.min(img[i])) / (np.max(img[i]) - np.min(img[i]))
+                for img in image_arrays
+            ]
         concatenated = np.concatenate(images, axis=1)
         border_width = concatenated.shape[1] // 128 or 1
 
