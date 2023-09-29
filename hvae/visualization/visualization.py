@@ -14,6 +14,7 @@ def draw_batch(
     fig_height: float = 10,
     num_images: int = 16,
     normalize: bool = True,
+    labels: list = None,
 ):
     """Show a batch of images on a grid.
     Only the first n_max images are shown.
@@ -35,11 +36,13 @@ def draw_batch(
     if not isinstance(axes, np.ndarray):
         axes = np.array([axes])
 
-    for ax, img in zip(axes.flat, images[:num_images]):
+    for i, ax, img in enumerate(zip(axes.flat, images[:num_images], labels)):
         if normalize:
             img = (img - np.min(img)) / (np.max(img) - np.min(img))
         ax.imshow(img, cmap="Greys_r", interpolation="nearest")
         ax.axis("off")
+        if labels is not None:
+            ax.set_title(labels[i])
     buffer = io.BytesIO()
     plt.savefig(buffer, bbox_inches="tight")
     plt.close()
@@ -52,6 +55,7 @@ def draw_reconstructions(
     fig_height: float = 10,
     num_images: int = 16,
     normalize: bool = True,
+    labels: list = None,
 ):
     """Show a batch of images and their reconstructions on a grid.
     Only the first n_max images are shown.
@@ -96,6 +100,8 @@ def draw_reconstructions(
             mid = j * concatenated.shape[1] // len(image_arrays)
             concatenated[:, mid - border_width : mid + border_width] = 1.0
         ax.imshow(concatenated, cmap="Greys_r", interpolation="nearest")
+        if labels is not None:
+            ax.set_title(labels[i])
 
     buffer = io.BytesIO()
     plt.savefig(buffer, bbox_inches="tight")
