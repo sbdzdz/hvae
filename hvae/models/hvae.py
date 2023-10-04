@@ -61,6 +61,7 @@ class HVAE(VAE):
         self.decoder_input = MLP(
             dims=[
                 self.latent_dim + num_classes,
+                self.num_hidden,
                 self.encoder_output_size,
             ]
         )
@@ -224,7 +225,7 @@ class DCTHVAE(HVAE):
         self.ks = ks
         self.decoder_input = MLP(
             dims=[
-                self.num_levels * self.latent_dim + self.num_classes,
+                self.latent_dim + self.num_classes,
                 self.num_hidden,
                 self.encoder_output_size,
             ]
@@ -240,11 +241,3 @@ class DCTHVAE(HVAE):
             losses.append(self.loss_function(**outputs))
         loss = {k: sum(loss[k] for loss in losses) for k in losses[0].keys()}
         return loss, outputs["x_hat"]
-
-    def before_decoder(self, zs: list[Tensor], y: Tensor, level: int = 0):
-        """Concatenate the latent vectors together and add a one-hot encoding of y."""
-        for i in range(level):
-            zs[i] = torch.zeros_like(zs[i]).to(self.device)
-        y = F.one_hot(y, num_classes=self.num_classes).float().to(self.device)
-        z = torch.cat([*zs, y], dim=1)
-        return self.decoder_input(z)
