@@ -210,7 +210,7 @@ class HVAE(VAE):
         """Concatenate the latent vectors with a one-hot encoding of y."""
         y = F.one_hot(y, num_classes=self.num_classes).float().to(self.device)
         z = torch.cat([zs[level], y], dim=1)
-        z = self.decoder_input(z)
+        return self.decoder_input(z)
 
     def generate_noise(self, num_samples: int) -> Tensor:
         """Generate a noise tensor to use for sampling."""
