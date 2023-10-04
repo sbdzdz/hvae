@@ -64,6 +64,7 @@ class HVAE(VAE):
                 self.encoder_output_size,
             ]
         )
+        self.h = nn.Parameter(torch.randn(self.latent_dim))
 
     def configure_optimizers(self):
         """Configure the optimizers."""
@@ -97,7 +98,7 @@ class HVAE(VAE):
         mu_log_var_deltas = []
         for r, net in zip(rs, self.delta_nets):
             delta_mu, delta_log_var = torch.chunk(net(r), 2, dim=1)
-            delta_log_var = F.hardtanh(delta_log_var, -7.0, 2.0)  # TODO: remove?
+            delta_log_var = F.hardtanh(delta_log_var, -7.0, 2.0)
             mu_log_var_deltas.append((delta_mu, delta_log_var))
 
         zs = []
@@ -106,18 +107,17 @@ class HVAE(VAE):
         for (delta_mu, delta_log_var), net in zip(
             reversed(mu_log_var_deltas), reversed(self.z_nets)
         ):
-            assert not torch.isnan(delta_mu).any(), "delta_mu is NaN"
-            assert not torch.isnan(delta_log_var).any(), "delta_log_var is NaN"
             if previous_z is None:
-                mu_log_vars.append((None, None))
-                z = self.reparameterize(delta_mu, delta_log_var)
+                previous_z = self.h
+                mu, log_var = torch.zeros_like(delta_mu), torch.zeros_like(
+                    delta_log_var
+                )
+            #    mu_log_vars.append((None, None))
+            #    z = self.reparameterize(delta_mu, delta_log_var) + self.h
             else:
                 mu, log_var = torch.chunk(net(previous_z), 2, dim=1)
-                assert not torch.isnan(mu).any(), "mu is NaN"
-                assert not torch.isnan(log_var).any(), "log_var is NaN"
-                mu_log_vars.append((mu, log_var))
-                z = self.reparameterize(mu + delta_mu, log_var + delta_log_var)
-            assert not torch.isnan(z).any(), "z is NaN"
+            mu_log_vars.append((mu, log_var))
+            z = self.reparameterize(mu + delta_mu, log_var + delta_log_var) + previous_z
             zs.append(z)
             previous_z = z
         zs = list(reversed(zs))
