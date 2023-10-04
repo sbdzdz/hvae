@@ -67,7 +67,9 @@ class VisualizationCallback(Callback):
         """Visualize model samples."""
         num_samples = 12
         z = pl_module.generate_noise(num_samples=num_samples)
-        y = torch.randint(pl_module.num_classes, size=(num_samples,)).to(self.device)
+        y = torch.randint(pl_module.num_classes, size=(num_samples,)).to(
+            pl_module.device
+        )
         samples = [
             pl_module.sample(12, z=z, y=y, level=level).detach().cpu().numpy()
             for level in range(pl_module.num_levels)
