@@ -113,8 +113,6 @@ class HVAE(VAE):
                 mu, log_var = torch.zeros_like(delta_mu), torch.zeros_like(
                     delta_log_var
                 )
-            #    mu_log_vars.append((None, None))
-            #    z = self.reparameterize(delta_mu, delta_log_var) + self.h
             else:
                 mu, log_var = torch.chunk(net(previous_z), 2, dim=1)
             mu_log_vars.append((mu, log_var))
