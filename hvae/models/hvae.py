@@ -65,7 +65,8 @@ class HVAE(VAE):
                 self.encoder_output_size,
             ]
         )
-        self.h = nn.Parameter(torch.randn(self.latent_dim))
+        # self.h = nn.Parameter(torch.randn(self.latent_dim))
+        self.h = torch.zeros(self.latent_dim)
 
     def configure_optimizers(self):
         """Configure the optimizers."""
