@@ -21,6 +21,7 @@ export HYDRA_FULL_ERROR=1
 python -m pip install --upgrade pip
 python -m pip install -r $HOME/hvae/requirements.txt
 python -m pip install -e $HOME/hvae
+pip install torch==2.0.1+cu117 torchvision==0.15.2+cu117 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu117
 
 srun --gres=gpu:1 python $HOME/hvae/train.py hydra.output_subdir=$WORK/projects/hvae/hydra \
     wandb.save_dir=$WORK/projects/hvae/wandb dataset.root=$WORK/datasets \
