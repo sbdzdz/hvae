@@ -52,7 +52,7 @@ def print_summary(cfg, model):
         cfg.dataset.img_size,
     ).to(model.device)
 
-    y = torch.zeros(cfg.training.batch_size, dtype=torch.long).long().to(model.device)
+    y = torch.zeros(cfg.training.batch_size).to(model.device).long()
 
     summary(model, input_data=(x, y))
 
@@ -79,7 +79,6 @@ def get_dataloaders(cfg: DictConfig):
         train_dataset,
         transform=transforms.Compose(
             [
-                transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(
