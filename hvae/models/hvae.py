@@ -26,7 +26,6 @@ class HVAE(VAE):
                 MLP(
                     dims=[
                         self.encoder_output_size,
-                        self.num_hidden,
                         self.encoder_output_size,
                     ],
                 )
@@ -49,7 +48,7 @@ class HVAE(VAE):
             [
                 MLP(
                     dims=[
-                        self.latent_dim,
+                        self.latent_dim + self.num_classes,
                         2 * self.latent_dim,
                     ]
                 )
@@ -65,8 +64,12 @@ class HVAE(VAE):
                 self.encoder_output_size,
             ]
         )
-        # self.h = nn.Parameter(torch.randn(self.latent_dim))
-        self.h = torch.zeros(self.latent_dim).to(self.device)
+        # self._h = nn.Parameter(torch.randn(self.latent_dim))
+        self._h = torch.zeros(self.latent_dim)
+
+    @property
+    def h(self):
+        return self._h.to(self.device)
 
     def configure_optimizers(self):
         """Configure the optimizers."""
@@ -90,6 +93,7 @@ class HVAE(VAE):
             A dictionary of tensors (x_hat, mu_log_vars, mu_log_var_deltas)
         """
         assert level < self.num_levels, f"Invalid level: {level}."
+        y = F.one_hot(y, num_classes=self.num_classes).float().to(self.device)
 
         x = self.encoder(x).flatten(start_dim=1)
         rs = []
@@ -111,13 +115,17 @@ class HVAE(VAE):
         ):
             if previous_z is None:
                 previous_z = self.h
-                mu, log_var = torch.zeros_like(delta_mu), torch.zeros_like(
-                    delta_log_var
-                )
+                mu = torch.zeros_like(delta_mu).to(self.device)
+                log_var = torch.zeros_like(delta_log_var).to(self.device)
             else:
-                mu, log_var = torch.chunk(net(previous_z), 2, dim=1)
+                mu, log_var = torch.chunk(net(torch.cat([previous_z, y], dim=1)), 2, dim=1)
             mu_log_vars.append((mu, log_var))
             z = self.reparameterize(mu + delta_mu, log_var + delta_log_var) + previous_z
+            assert not torch.isnan(z).any(), "NaN in z."
+            assert not torch.isnan(mu).any(), "NaN in mu."
+            assert not torch.isnan(log_var).any(), "NaN in log_var."
+            assert not torch.isnan(delta_mu).any(), "NaN in delta_mu."
+            assert not torch.isnan(delta_log_var).any(), "NaN in delta_log_var."
             zs.append(z)
             previous_z = z
         zs = list(reversed(zs))
@@ -188,16 +196,17 @@ class HVAE(VAE):
         """
         assert level < self.num_levels, f"Invalid level: {level}."
         if y is None:
-            y = torch.randint(self.num_classes, size=(num_samples,)).to(self.device)
+            y = torch.randint(self.num_classes, size=(num_samples,)).to(self.device).long()
         else:
             assert y.shape[0] == num_samples, "Invalid number of samples."
+        y = F.one_hot(y, num_classes=self.num_classes).float().to(self.device)
 
         if z is None:
             z = torch.randn(num_samples, self.latent_dim).to(self.device)
 
         zs = [z]
         for net in reversed(self.z_nets[:-1]):
-            z = net(z)
+            z = net(torch.cat([z, y], dim=1))
             mu, log_var = torch.chunk(z, 2, dim=1)
             z = self.reparameterize(mu, log_var)
             zs.append(z)
@@ -207,8 +216,7 @@ class HVAE(VAE):
 
     def before_decoder(self, zs: list[Tensor], y: Tensor, level: int = 0):
         """Concatenate the latent vectors with a one-hot encoding of y."""
-        y = F.one_hot(y, num_classes=self.num_classes).float().to(self.device)
-        z = torch.cat([zs[level], y], dim=1)
+        z = torch.cat([zs[0], y], dim=1)
         return self.decoder_input(z)
 
     def generate_noise(self, num_samples: int) -> Tensor:
